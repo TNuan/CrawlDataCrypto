@@ -1,6 +1,14 @@
 import csv
+import requests
+import json
 
-symbols = ['ZIL', 'DASH', 'AAVE', 'BTC', 'DOGE']
+
+page = requests.get(
+    'https://api-dev.nestquant.com/data/symbols?category=crypto')
+data = json.loads(page.text)
+symbols = data['symbols']
+# symbols = ['AXS', 'BTC','QNT','SOL','WOO','ZEC','TRX']
+
 symbol_map = dict(map(lambda x: (x, []), symbols))
 
 for symbol in symbols:
@@ -26,14 +34,19 @@ for symbol in symbols:
             if row[indexs[-4]] == "------":
                 arrayNumberTransactions.append(
                     int(float(headerArray[i-1]["NUMBER_OF_TRADES"])))
-        arrayNumberTransactions.append(
-            int(float(headerArray[i-1]["NUMBER_OF_TRADES"])))
-
+            if row[indexs[-5]] == "------":
+                arrayNumberTransactions.append(
+                    int(float(headerArray[i-1]["NUMBER_OF_TRADES"])))
 for i in range(5):
-    max = 0
-    tmpSymbol = ''
+    array = []
     for symbol in symbols:
-        if symbol_map[symbol][i] > max:
-            max = symbol_map[symbol][i]
-            tmpSymbol = symbol
-    print(tmpSymbol, "", max)
+        array.append({'name': symbol,
+                      'numberTransactions': symbol_map[symbol][i]})
+    sorted_array = sorted(
+        array, key=lambda x: x['numberTransactions'], reverse=True)
+    top_5_elements = sorted_array[:5]
+    print("Khoang thoi gian thu ",i+1)
+    for tmp in top_5_elements:
+        print(tmp['name'])
+        
+    
