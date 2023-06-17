@@ -21,24 +21,20 @@ if __name__ == "__main__":
     # Lấy 5 token bất kỳ
 
     numRages = 5
-    # page = requests.get(
-    #     'https://api-dev.nestquant.com/data/symbols?category=crypto')
-    # data = json.loads(page.text)
-    # symbols = random.choices(data['symbols'], k=numRages)
+    page = requests.get(
+        'https://api-dev.nestquant.com/data/symbols?category=crypto')
+    data = json.loads(page.text)
+    symbols = data['symbols']
 
-
-    symbols = ['ZIL', 'DASH', 'AAVE', 'STX', 'LTC']
     # Lấy dữ liệu 5 của 5 token
     for symbol in symbols:
         # Crawl dữ liệu từ api
-        folder_path = './data/' + symbol
+        folder_path = './data'
         crawler = Crawler(api_key=os.getenv('API_KEY'))
-        crawler.download_historical_data(
-            category="crypto", symbol=str(symbol), location=folder_path)
 
         # Tạo một danh sách chứa đường dẫn đến các tệp Parquet trong thư mục
         parquet_files = [os.path.join(folder_path+'/'+symbol+'USDT', file)
-                         for file in os.listdir(folder_path+'/'+symbol+'USDT') if file.endswith('.parquet')]
+                         for file in os.listdir(folder_path+'/'+symbol+'USDT') if file.endswith('202305.parquet')]
 
         # Khởi tạo DataFrame rỗng
         df_combined = pd.DataFrame()
@@ -51,7 +47,7 @@ if __name__ == "__main__":
             df_combined = pd.concat([df_combined, df])
 
         # Sort dữ liệu theo trường NUMBER_OF_TRADES
-        df_combined = df_combined.sort_values(by='NUMBER_OF_TRADES')
+        # df_combined = df_combined.sort_values(by='NUMBER_OF_TRADES')
 
         # Lấy số dòng của dataframe
         num_rows = len(df_combined)
@@ -59,14 +55,19 @@ if __name__ == "__main__":
         # Tính số dòng của khoảng
         chunk_size = num_rows // numRages
 
+        df_combined_result = pd.DataFrame()
+
         # Thêm dòng trắng vào giữa từng khoảng
-        for i in range(1, numRages):
+        for i in range(0, numRages):
             insert_index = i * chunk_size
-            blank_row = pd.DataFrame({'------'}, index=[insert_index])
-            df_combined = pd.concat([df_combined.iloc[:insert_index], blank_row.transpose(
-            ), df_combined.iloc[insert_index:]]).reset_index(drop=True)
+            blank_row = pd.DataFrame(
+                {'------'}, index=[insert_index+chunk_size])
+            # df_combined = pd.concat([df_combined.iloc[:insert_index], blank_row.transpose(), df_combined.iloc[insert_index:]]).reset_index(drop=True)
+            df_combined_split = pd.concat(
+                [df_combined.iloc[insert_index:insert_index+chunk_size], blank_row.transpose()]).sort_values(by='NUMBER_OF_TRADES')
+            df_combined_result = pd.concat(
+                [df_combined_result, df_combined_split]).reset_index(drop=True)
 
         # Lưu DataFrame chứa dữ liệu từ tất cả các tệp Parquet thành tệp CSV
         csv_file = 'combined_data/' + symbol + '.csv'
-        df_combined.to_csv(csv_file)
-
+        df_combined_result.to_csv(csv_file)
