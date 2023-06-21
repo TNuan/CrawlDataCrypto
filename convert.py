@@ -38,8 +38,6 @@ if __name__ == "__main__":
             df = table.to_pandas()
             if not df.empty:
                 df_combined = pd.concat([df_combined, df])
-            
-
-
+                
         csv_file = 'combined_data_raw/' + symbol + '.csv'
         df_combined.to_csv(csv_file)
